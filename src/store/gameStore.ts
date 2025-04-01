@@ -45,7 +45,12 @@ interface GameState {
   calculateArmyUpkeep: () => number;
 
   // Yeni fonksiyonlar
-  calculateResourceProduction: (resourceType: keyof GameState['resources']) => number;
+  calculateResourceProduction: () => {
+    wood: number;
+    stone: number;
+    iron: number;
+    grain: number;
+  };
   updateResources: () => void;
 }
 
@@ -240,51 +245,33 @@ export const useGameStore = create<GameState>((set, get) => ({
     );
   },
 
-  calculateResourceProduction: (resourceType) => {
+  calculateResourceProduction: () => {
     const state = get();
-    const baseProduction = {
-      wood: 10,
-      stone: 8,
-      iron: 5,
-      grain: 15
+    const production = {
+      wood: 0,
+      stone: 0,
+      iron: 0,
+      grain: 0
     };
 
-    // Bina seviyelerine göre üretimi hesapla
-    const buildings = state.buildings;
-    let multiplier = 1;
-
-    buildings.forEach(building => {
+    state.buildings.forEach(building => {
       switch (building.type) {
         case 'Woodcutter':
-          if (resourceType === 'wood') {
-            multiplier += building.level * 0.2; // Her seviye %20 artış
-          }
+          production.wood += 16 * building.level;
           break;
         case 'Quarry':
-          if (resourceType === 'stone') {
-            multiplier += building.level * 0.2;
-          }
+          production.stone += 8 * building.level;
           break;
         case 'Iron Mine':
-          if (resourceType === 'iron') {
-            multiplier += building.level * 0.2;
-          }
+          production.iron += 5 * building.level;
           break;
         case 'Farm':
-          if (resourceType === 'grain') {
-            multiplier += building.level * 0.2;
-          }
+          production.grain += 24 * building.level;
           break;
       }
     });
 
-    // Tahıl üretiminden ordu bakım maliyetini düş
-    if (resourceType === 'grain') {
-      const upkeep = get().calculateArmyUpkeep();
-      return Math.max(0, (baseProduction[resourceType] * multiplier) - upkeep);
-    }
-
-    return baseProduction[resourceType] * multiplier;
+    return production;
   },
 
   updateResources: () => {
@@ -292,8 +279,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       const newResources = { ...state.resources };
       
       (Object.keys(newResources) as Array<keyof typeof newResources>).forEach((resource) => {
-        const production = state.calculateResourceProduction(resource);
-        newResources[resource] = Math.max(0, newResources[resource] + production);
+        const production = state.calculateResourceProduction();
+        newResources[resource] = Math.max(0, newResources[resource] + production[resource]);
       });
 
       return { resources: newResources };

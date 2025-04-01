@@ -78,10 +78,15 @@ export function BuildingDetailModal({
           {building.isUpgrading && (
             <div className="bg-amber-900/20 rounded p-4 text-center">
               <p className="text-amber-400 font-medieval mb-2">İnşaat Devam Ediyor</p>
-              <CountdownTimer 
-                endTime={Date.now() + (building.upgradeTime || 0) * 1000}
-                onComplete={() => {}}
-              />
+              <div className="w-full h-2 bg-amber-900/50 rounded overflow-hidden">
+                <div 
+                  className="h-full bg-amber-500 transition-all duration-300"
+                  style={{ width: `${building.upgradeProgress}%` }}
+                />
+              </div>
+              <p className="text-amber-300 text-sm mt-2">
+                %{Math.round(building.upgradeProgress)}
+              </p>
             </div>
           )}
         </div>

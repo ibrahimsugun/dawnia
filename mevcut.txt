@@ -1,0 +1,252 @@
+# Dawnia - Detaylı Teknik Analiz
+
+## 1. Proje Yapısı ve Dosya Organizasyonu
+
+### 1.1 Kök Dizin Yapısı
+```
+/
+├── src/
+│   ├── components/     # React bileşenleri
+│   ├── models/        # TypeScript tip tanımlamaları
+│   ├── store/         # State yönetimi
+│   ├── lib/           # Yardımcı fonksiyonlar
+│   ├── assets/        # Statik dosyalar
+│   └── App.tsx        # Ana uygulama bileşeni
+├── public/            # Statik dosyalar
+├── package.json       # Bağımlılıklar ve scripts
+└── tsconfig.json     # TypeScript konfigürasyonu
+```
+
+### 1.2 Bileşen Hiyerarşisi
+```
+App
+└── VillageView
+    ├── ResourceBar
+    ├── VillageMap
+    │   └── BuildingMapItem
+    │       └── Building
+    └── BuildingDetailModal
+```
+
+## 2. State Yönetimi ve Veri Akışı
+
+### 2.1 Zustand Store Yapısı
+```typescript
+interface GameState {
+  resources: {
+    wood: number;
+    stone: number;
+    iron: number;
+    grain: number;
+  };
+  
+  buildings: Building[];
+  selectedBuilding: Building | null;
+  
+  army: {
+    swordsmen: number;
+    archers: number;
+    cavalry: number;
+  };
+}
+```
+
+### 2.2 Store Aksiyonları
+```typescript
+interface GameActions {
+  updateResources: () => void;
+  selectBuilding: (id: string) => void;
+  upgradeBuilding: (id: string) => void;
+  calculateResourceProduction: () => ResourceProduction;
+  calculateUpgradeCost: (building: Building) => BuildingCost;
+}
+```
+
+## 3. Bileşen Detayları ve İşleyişleri
+
+### 3.1 VillageView
+- Köy görünümünün ana container'ı
+- Kaynak çubuğu ve harita görünümünü yönetir
+- useEffect ile kaynak güncelleme döngüsünü başlatır
+```typescript
+useEffect(() => {
+  const resourceInterval = setInterval(updateResources, 1000);
+  return () => clearInterval(resourceInterval);
+}, [updateResources]);
+```
+
+### 3.2 ResourceBar
+- Sticky header olarak konumlandırılmış
+- Her kaynak için ayrı gösterim birimi
+- Üretim hızı hesaplaması ve gösterimi
+```typescript
+const resourceConfig = [
+  { type: 'wood', name: 'Odun', Icon: Tree },
+  { type: 'stone', name: 'Taş', Icon: Mountain },
+  { type: 'iron', name: 'Demir', Icon: Cog },
+  { type: 'grain', name: 'Tahıl', Icon: Wheat },
+];
+```
+
+### 3.3 Building
+- 2x2 grid sisteminde konumlandırma
+- Hover ve seçim durumu yönetimi
+- İnşaat progress gösterimi
+```typescript
+const gridStyle = {
+  left: position.x * gridCellSize,
+  top: position.y * gridCellSize,
+  width: size.width * gridCellSize,
+  height: size.height * gridCellSize,
+};
+```
+
+### 3.4 BuildingDetailModal
+- Bina detayları ve yükseltme arayüzü
+- Yükseltme maliyeti hesaplama ve gösterimi
+- İnşaat durumu takibi
+
+## 4. Veri Modelleri ve Tip Tanımlamaları
+
+### 4.1 Building Model
+```typescript
+interface Building {
+  id: string;
+  name: string;
+  type: string;
+  level: number;
+  position: {
+    x: number;
+    y: number;
+  };
+  size: {
+    width: number;
+    height: number;
+  };
+  description: string;
+  isUpgrading: boolean;
+  isSelected: boolean;
+  upgradeProgress: number;
+}
+```
+
+### 4.2 Resource Model
+```typescript
+interface Resources {
+  wood: number;
+  stone: number;
+  iron: number;
+  grain: number;
+}
+
+interface ResourceProduction {
+  wood: number;
+  stone: number;
+  iron: number;
+  grain: number;
+}
+```
+
+## 5. Hesaplama Sistemleri ve İş Mantığı
+
+### 5.1 Kaynak Üretimi
+```typescript
+const calculateResourceProduction = () => {
+  const production = { wood: 0, stone: 0, iron: 0, grain: 0 };
+  
+  buildings.forEach(building => {
+    switch (building.type) {
+      case 'Woodcutter':
+        production.wood += 16 * building.level;
+        break;
+      case 'Quarry':
+        production.stone += 8 * building.level;
+        break;
+      case 'Iron Mine':
+        production.iron += 5 * building.level;
+        break;
+      case 'Farm':
+        production.grain += 24 * building.level;
+        break;
+    }
+  });
+  
+  return production;
+};
+```
+
+### 5.2 Bina Yükseltme Sistemi
+```typescript
+const upgradeBuilding = (buildingId: string) => {
+  // Kaynak kontrolü
+  const cost = calculateUpgradeCost(building);
+  if (!hasEnoughResources(cost)) return;
+
+  // Kaynakları düş
+  deductResources(cost);
+
+  // İnşaatı başlat
+  const interval = setInterval(() => {
+    set(state => {
+      const building = state.buildings.find(b => b.id === buildingId);
+      if (!building || !building.isUpgrading) {
+        clearInterval(interval);
+        return state;
+      }
+
+      const newProgress = building.upgradeProgress + (100 / 60);
+      
+      if (newProgress >= 100) {
+        clearInterval(interval);
+        return completeBuildingUpgrade(buildingId);
+      }
+
+      return updateBuildingProgress(buildingId, newProgress);
+    });
+  }, 1000);
+};
+```
+
+## 6. Event Sistemi ve Kullanıcı Etkileşimi
+
+### 6.1 Bina Seçimi
+```typescript
+const handleBuildingClick = (buildingId: string) => {
+  selectBuilding(buildingId);
+  showBuildingDetails(buildingId);
+};
+```
+
+### 6.2 Modal Yönetimi
+```typescript
+const handleModalClose = () => {
+  closeSelectedBuilding();
+  resetBuildingSelection();
+};
+```
+
+## 7. Grid Sistemi ve Konumlandırma
+
+### 7.1 Grid Hesaplamaları
+```typescript
+const GRID_SIZE = 32; // piksel
+const GRID_COLS = 25;
+const GRID_ROWS = 25;
+
+const calculateGridPosition = (x: number, y: number) => ({
+  left: x * GRID_SIZE,
+  top: y * GRID_SIZE
+});
+```
+
+### 7.2 Çakışma Kontrolü
+```typescript
+const checkBuildingCollision = (pos: Position, size: Size) => {
+  return buildings.some(building => 
+    pos.x < (building.position.x + building.size.width) &&
+    (pos.x + size.width) > building.position.x &&
+    pos.y < (building.position.y + building.size.height) &&
+    (pos.y + size.height) > building.position.y
+  );
+};
+``` 
