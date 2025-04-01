@@ -2,6 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  @font-face {
+    font-family: 'Medieval';
+    src: url('/fonts/medieval.woff2') format('woff2');
+  }
+}
+
+@layer components {
+  .bg-parchment {
+    background-color: #0e0d0d;
+    background-image: url('/images/parchment-texture.png');
+    background-blend-mode: multiply;
+  }
+
+  .font-medieval {
+    font-family: 'Medieval', serif;
+  }
+
+  .bg-brown-100 {
+    background-color: #8B4513;
+  }
+
+  .bg-brown-200 {
+    background-color: #DEB887;
+  }
+
+  .ring-gold {
+    --tw-ring-color: #FFD700;
+  }
+
+  .border-brown-800 {
+    border-color: #654321;
+  }
+}
+
 @keyframes progress-bar-stripes {
   from {
     background-position: 20px 0;

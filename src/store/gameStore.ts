@@ -1,14 +1,38 @@
 import { create } from 'zustand';
-import { Building, BuildingType, BuildingCost } from '../models/building';
 
-interface GameState {
-  // Kaynaklar
-  resources: {
-    wood: number;
-    stone: number;
-    iron: number;
-    grain: number;
-  };
+interface Resources {
+  wood: number;
+  stone: number;
+  iron: number;
+  grain: number;
+}
+
+interface Building {
+  id: string;
+  name: string;
+  type: string;
+  level: number;
+  position: { x: number; y: number };
+  size: { width: number; height: number };
+  description: string;
+  isUpgrading: boolean;
+  isSelected: boolean;
+  upgradeProgress: number;
+}
+
+interface BuildingCost {
+  wood?: number;
+  stone?: number;
+  iron?: number;
+  grain?: number;
+}
+
+export interface GameState {
+  // Temel özellikler
+  selectedRace: string | null;
+  selectedRegion: string | null;
+  avatarName: string | null;
+  resources: Resources;
   
   // Binalar
   buildings: Building[];
@@ -34,17 +58,32 @@ interface GameState {
     remainingTime: number;
   }[];
 
+  // Irk özellikleri
+  raceBonus: {
+    resourceProduction: {
+      wood: number;
+      stone: number;
+      iron: number;
+      grain: number;
+    };
+    buildingCostReduction: number;
+    armyBonus: {
+      attack: number;
+      defense: number;
+      trainingSpeed: number;
+    };
+  };
+
   // Aksiyonlar
+  initializeGame: (race: string) => void;
   upgradeBuilding: (buildingId: string) => void;
   selectBuilding: (buildingId: string) => void;
   closeSelectedBuilding: () => void;
-  trainUnit: (unitType: string) => void;
+  trainUnit: (unitType: 'swordsmen' | 'archers' | 'cavalry') => void;
   calculateUpgradeCost: (building: Building) => BuildingCost;
   calculateAttackPower: () => number;
   calculateDefensePower: () => number;
   calculateArmyUpkeep: () => number;
-
-  // Yeni fonksiyonlar
   calculateResourceProduction: () => {
     wood: number;
     stone: number;
@@ -52,55 +91,89 @@ interface GameState {
     grain: number;
   };
   updateResources: () => void;
+  initializeRace: (race: string) => void;
+  initializeRegion: (region: string) => void;
+  addResource: (resource: keyof Resources, amount: number) => void;
+  setAvatarName: (name: string) => void;
 }
 
+const getRaceBonus = (race: string) => {
+  switch (race) {
+    case 'highlanders':
+      return {
+        resourceProduction: {
+          wood: 1.0,
+          stone: 1.5,
+          iron: 1.5,
+          grain: 1.0
+        },
+        buildingCostReduction: 0.1,
+        armyBonus: {
+          attack: 1.0,
+          defense: 1.5,
+          trainingSpeed: 1.0
+        }
+      };
+    case 'forestkin':
+      return {
+        resourceProduction: {
+          wood: 1.5,
+          stone: 1.0,
+          iron: 1.0,
+          grain: 1.5
+        },
+        buildingCostReduction: 0.0,
+        armyBonus: {
+          attack: 1.3,
+          defense: 1.0,
+          trainingSpeed: 1.2
+        }
+      };
+    case 'nomads':
+      return {
+        resourceProduction: {
+          wood: 1.0,
+          stone: 1.0,
+          iron: 1.2,
+          grain: 1.2
+        },
+        buildingCostReduction: 0.0,
+        armyBonus: {
+          attack: 1.5,
+          defense: 0.8,
+          trainingSpeed: 1.5
+        }
+      };
+    default:
+      return {
+        resourceProduction: {
+          wood: 1.0,
+          stone: 1.0,
+          iron: 1.0,
+          grain: 1.0
+        },
+        buildingCostReduction: 0.0,
+        armyBonus: {
+          attack: 1.0,
+          defense: 1.0,
+          trainingSpeed: 1.0
+        }
+      };
+  }
+};
+
 export const useGameStore = create<GameState>((set, get) => ({
+  selectedRace: null,
+  selectedRegion: null,
+  avatarName: null,
   resources: {
-    wood: 1000,
-    stone: 1000,
-    iron: 1000,
-    grain: 1000,
+    wood: 100,
+    stone: 100,
+    iron: 100,
+    grain: 100,
   },
   
-  buildings: [
-    {
-      id: '1',
-      name: 'Main Building',
-      type: 'Main Building',
-      level: 1,
-      position: { x: 12, y: 12 },
-      size: { width: 2, height: 2 },
-      description: 'Köyünüzün merkezi. Her seviye bina inşaat süresini %10 azaltır.',
-      isUpgrading: false,
-      isSelected: false,
-      upgradeProgress: 0,
-    },
-    {
-      id: '2',
-      name: 'Farm',
-      type: 'Farm',
-      level: 1,
-      position: { x: 10, y: 10 },
-      size: { width: 2, height: 2 },
-      description: 'Köyünüz için tahıl üretir',
-      isUpgrading: false,
-      isSelected: false,
-      upgradeProgress: 0,
-    },
-    {
-      id: '3',
-      name: 'Woodcutter',
-      type: 'Woodcutter',
-      level: 1,
-      position: { x: 14, y: 10 },
-      size: { width: 2, height: 2 },
-      description: 'Ormandan odun toplar',
-      isUpgrading: false,
-      isSelected: false,
-      upgradeProgress: 0,
-    },
-  ],
-  
+  buildings: [],
   selectedBuilding: null,
   
   army: {
@@ -111,6 +184,53 @@ export const useGameStore = create<GameState>((set, get) => ({
   
   trainingQueue: [],
 
+  raceBonus: getRaceBonus(''),
+
+  initializeGame: (race: string) => {
+    set({
+      selectedRace: race,
+      raceBonus: getRaceBonus(race),
+      buildings: [
+        {
+          id: '1',
+          name: 'Ana Bina',
+          type: 'Main Building',
+          level: 1,
+          position: { x: 12, y: 12 },
+          size: { width: 2, height: 2 },
+          description: 'Köyünüzün merkezi. Her seviye bina inşaat süresini %10 azaltır.',
+          isUpgrading: false,
+          isSelected: false,
+          upgradeProgress: 0,
+        },
+        {
+          id: '2',
+          name: 'Çiftlik',
+          type: 'Farm',
+          level: 1,
+          position: { x: 10, y: 10 },
+          size: { width: 2, height: 2 },
+          description: 'Köyünüz için tahıl üretir',
+          isUpgrading: false,
+          isSelected: false,
+          upgradeProgress: 0,
+        },
+        {
+          id: '3',
+          name: 'Oduncu',
+          type: 'Woodcutter',
+          level: 1,
+          position: { x: 14, y: 10 },
+          size: { width: 2, height: 2 },
+          description: 'Ormandan odun toplar',
+          isUpgrading: false,
+          isSelected: false,
+          upgradeProgress: 0,
+        },
+      ]
+    });
+  },
+
   upgradeBuilding: (buildingId) => {
     const state = get();
     const building = state.buildings.find(b => b.id === buildingId);
@@ -118,7 +238,6 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     const cost = state.calculateUpgradeCost(building);
     
-    // Kaynak kontrolü
     if (
       (cost.wood && state.resources.wood < cost.wood) ||
       (cost.stone && state.resources.stone < cost.stone) ||
@@ -128,7 +247,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       return;
     }
 
-    // Kaynakları düş
     set((state) => ({
       resources: {
         wood: state.resources.wood - (cost.wood || 0),
@@ -138,7 +256,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
     }));
 
-    // Binayı yükseltmeye başla
     set((state) => ({
       buildings: state.buildings.map(b => 
         b.id === buildingId 
@@ -200,8 +317,45 @@ export const useGameStore = create<GameState>((set, get) => ({
     }));
   },
 
-  trainUnit: (unitType) => {
-    // Birim eğitimi implementasyonu
+  trainUnit: (unitType: 'swordsmen' | 'archers' | 'cavalry') => {
+    const state = get();
+    const costs = {
+      swordsmen: { iron: 30, grain: 20 },
+      archers: { wood: 30, grain: 15 },
+      cavalry: { iron: 40, grain: 30 }
+    };
+
+    const cost = costs[unitType];
+    
+    // Kaynak kontrolü
+    if (
+      Object.entries(cost).some(
+        ([resource, amount]) => state.resources[resource as keyof Resources] < amount
+      )
+    ) {
+      return;
+    }
+
+    // Kaynakları düş
+    set((state) => ({
+      resources: {
+        ...state.resources,
+        ...Object.fromEntries(
+          Object.entries(cost).map(([resource, amount]) => [
+            resource,
+            state.resources[resource as keyof Resources] - amount
+          ])
+        )
+      }
+    }));
+
+    // Birimi ekle
+    set((state) => ({
+      army: {
+        ...state.army,
+        [unitType]: state.army[unitType] + 1
+      }
+    }));
   },
 
   calculateUpgradeCost: (building) => {
@@ -286,4 +440,15 @@ export const useGameStore = create<GameState>((set, get) => ({
       return { resources: newResources };
     });
   },
+
+  initializeRace: (race) => set(() => ({ selectedRace: race })),
+  initializeRegion: (region) => set(() => ({ selectedRegion: region })),
+  addResource: (resource, amount) =>
+    set((state) => ({
+      resources: {
+        ...state.resources,
+        [resource]: state.resources[resource] + amount,
+      },
+    })),
+  setAvatarName: (name: string) => set({ avatarName: name }),
 }));
