@@ -54,6 +54,141 @@ interface GameState {
   updateResources: () => void;
 }
 
+const initialBuildings = [
+  {
+    id: '1',
+    name: 'Ana Bina',
+    type: 'MainBuilding',
+    level: 1,
+    position: { x: 12, y: 12 },
+    size: { width: 2, height: 2 },
+    description: 'Köyünüzün merkezi. Her seviye bina inşaat süresini %10 azaltır.',
+    isUpgrading: false,
+    isSelected: false,
+    upgradeProgress: 0,
+  },
+  {
+    id: '2',
+    name: 'Çiftlik',
+    type: 'Farm',
+    level: 1,
+    position: { x: 10, y: 10 },
+    size: { width: 2, height: 2 },
+    description: 'Tahıl üretir. Her seviye saatlik üretimi artırır.',
+    isUpgrading: false,
+    isSelected: false,
+    upgradeProgress: 0,
+  },
+  {
+    id: '3',
+    name: 'Oduncu',
+    type: 'Woodcutter',
+    level: 1,
+    position: { x: 14, y: 10 },
+    size: { width: 2, height: 2 },
+    description: 'Odun toplar. Her seviye saatlik üretimi artırır.',
+    isUpgrading: false,
+    isSelected: false,
+    upgradeProgress: 0,
+  },
+  {
+    id: '4',
+    name: 'Taş Ocağı',
+    type: 'Quarry',
+    level: 1,
+    position: { x: 10, y: 14 },
+    size: { width: 2, height: 2 },
+    description: 'Taş çıkarır. Her seviye saatlik üretimi artırır.',
+    isUpgrading: false,
+    isSelected: false,
+    upgradeProgress: 0,
+  },
+  {
+    id: '5',
+    name: 'Demir Madeni',
+    type: 'IronMine',
+    level: 1,
+    position: { x: 14, y: 14 },
+    size: { width: 2, height: 2 },
+    description: 'Demir çıkarır. Her seviye saatlik üretimi artırır.',
+    isUpgrading: false,
+    isSelected: false,
+    upgradeProgress: 0,
+  },
+  {
+    id: '6',
+    name: 'Kışla',
+    type: 'Barracks',
+    level: 1,
+    position: { x: 8, y: 12 },
+    size: { width: 2, height: 2 },
+    description: 'Piyade ve okçu eğitimi yapılır. Her seviye eğitim süresini kısaltır.',
+    isUpgrading: false,
+    isSelected: false,
+    upgradeProgress: 0,
+  },
+  {
+    id: '7',
+    name: 'Ahır',
+    type: 'Stable',
+    level: 1,
+    position: { x: 16, y: 12 },
+    size: { width: 2, height: 2 },
+    description: 'Süvari eğitimi yapılır. Her seviye eğitim süresini kısaltır.',
+    isUpgrading: false,
+    isSelected: false,
+    upgradeProgress: 0,
+  },
+  {
+    id: '8',
+    name: 'Demirci',
+    type: 'Blacksmith',
+    level: 1,
+    position: { x: 12, y: 8 },
+    size: { width: 2, height: 2 },
+    description: 'Silah ve zırh geliştirilir. Her seviye savaş gücünü artırır.',
+    isUpgrading: false,
+    isSelected: false,
+    upgradeProgress: 0,
+  },
+  {
+    id: '9',
+    name: 'Depo',
+    type: 'Warehouse',
+    level: 1,
+    position: { x: 12, y: 16 },
+    size: { width: 2, height: 2 },
+    description: 'Hammadde depolama kapasitesini artırır.',
+    isUpgrading: false,
+    isSelected: false,
+    upgradeProgress: 0,
+  },
+  {
+    id: '10',
+    name: 'Surlar',
+    type: 'Wall',
+    level: 1,
+    position: { x: 8, y: 8 },
+    size: { width: 2, height: 2 },
+    description: 'Köyünüzü savunur. Her seviye savunma gücünü artırır.',
+    isUpgrading: false,
+    isSelected: false,
+    upgradeProgress: 0,
+  },
+  {
+    id: '11',
+    name: 'Pazar',
+    type: 'Market',
+    level: 1,
+    position: { x: 16, y: 16 },
+    size: { width: 2, height: 2 },
+    description: 'Hammadde ticareti yapılır. Her seviye ticaret kapasitesini artırır.',
+    isUpgrading: false,
+    isSelected: false,
+    upgradeProgress: 0,
+  },
+];
+
 export const useGameStore = create<GameState>((set, get) => ({
   resources: {
     wood: 1000,
@@ -62,44 +197,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     grain: 1000,
   },
   
-  buildings: [
-    {
-      id: '1',
-      name: 'Main Building',
-      type: 'Main Building',
-      level: 1,
-      position: { x: 12, y: 12 },
-      size: { width: 2, height: 2 },
-      description: 'Köyünüzün merkezi. Her seviye bina inşaat süresini %10 azaltır.',
-      isUpgrading: false,
-      isSelected: false,
-      upgradeProgress: 0,
-    },
-    {
-      id: '2',
-      name: 'Farm',
-      type: 'Farm',
-      level: 1,
-      position: { x: 10, y: 10 },
-      size: { width: 2, height: 2 },
-      description: 'Köyünüz için tahıl üretir',
-      isUpgrading: false,
-      isSelected: false,
-      upgradeProgress: 0,
-    },
-    {
-      id: '3',
-      name: 'Woodcutter',
-      type: 'Woodcutter',
-      level: 1,
-      position: { x: 14, y: 10 },
-      size: { width: 2, height: 2 },
-      description: 'Ormandan odun toplar',
-      isUpgrading: false,
-      isSelected: false,
-      upgradeProgress: 0,
-    },
-  ],
+  buildings: initialBuildings,
   
   selectedBuilding: null,
   
@@ -229,11 +327,22 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   calculateDefensePower: () => {
     const state = get();
-    return (
+    
+    // Temel savunma gücü
+    const baseDefense = 
       state.army.swordsmen * 8 +
       state.army.archers * 5 +
-      state.army.cavalry * 10
-    );
+      state.army.cavalry * 10;
+
+    // Sur bonusu (her seviye %20 bonus)
+    const wall = state.buildings.find(b => b.type === 'Wall');
+    const wallBonus = wall ? 1 + (wall.level * 0.2) : 1;
+
+    // Demirci bonusu (her seviye %10 bonus)
+    const blacksmith = state.buildings.find(b => b.type === 'Blacksmith');
+    const blacksmithBonus = blacksmith ? 1 + (blacksmith.level * 0.1) : 1;
+
+    return Math.floor(baseDefense * wallBonus * blacksmithBonus);
   },
 
   calculateArmyUpkeep: () => {

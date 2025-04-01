@@ -1,5 +1,31 @@
 import React from 'react';
-import { Home, Wheat, Trees as Tree, Mountain, Cog, Sword, Shield, Castle } from 'lucide-react';
+import { 
+  Castle, 
+  Wheat, 
+  Trees as Tree, 
+  Mountain, 
+  Cog, 
+  Sword, 
+  Footprints, 
+  Hammer, 
+  Package, 
+  Shield, 
+  Store 
+} from 'lucide-react';
+
+const buildingIcons = {
+  'MainBuilding': Castle,
+  'Farm': Wheat,
+  'Woodcutter': Tree,
+  'Quarry': Mountain,
+  'IronMine': Cog,
+  'Barracks': Sword,
+  'Stable': Footprints,
+  'Blacksmith': Hammer,
+  'Warehouse': Package,
+  'Wall': Shield,
+  'Market': Store,
+};
 
 interface BuildingProps {
   name: string;
@@ -20,22 +46,13 @@ interface BuildingProps {
   onClick: () => void;
 }
 
-const buildingIcons = {
-  'Main Building': Castle,
-  'Farm': Wheat,
-  'Woodcutter': Tree,
-  'Quarry': Mountain,
-  'Iron Mine': Cog,
-  'Barracks': Sword,
-  'Wall': Shield,
-};
-
 export function Building({
   name,
   type,
   level,
   size,
   position,
+  upgradeCost,
   isUpgrading,
   upgradeProgress,
   isSelected,
