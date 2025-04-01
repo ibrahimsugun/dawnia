@@ -6,13 +6,26 @@ export interface Position {
 export interface Building {
   id: string;
   name: string;
-  type: BuildingType;
+  type: string;
   level: number;
-  position: Position;
+  position: {
+    x: number;
+    y: number;
+  };
+  size: {
+    width: number;
+    height: number;
+  };
   description: string;
   isUpgrading: boolean;
-  upgradeTime?: number;
   isSelected: boolean;
+  upgradeProgress: number;
+  upgradeCost?: {
+    wood?: number;
+    grain?: number;
+    stone?: number;
+    iron?: number;
+  };
 }
 
 export type BuildingType = 

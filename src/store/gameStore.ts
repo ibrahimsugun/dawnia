@@ -64,9 +64,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       type: 'Main Building',
       level: 1,
       position: { x: 12, y: 12 },
+      size: { width: 2, height: 2 },
       description: 'Köyünüzün merkezi. Her seviye bina inşaat süresini %10 azaltır.',
       isUpgrading: false,
       isSelected: false,
+      upgradeProgress: 0,
     },
     {
       id: '2',
@@ -74,9 +76,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       type: 'Farm',
       level: 1,
       position: { x: 10, y: 10 },
+      size: { width: 2, height: 2 },
       description: 'Köyünüz için tahıl üretir',
       isUpgrading: false,
       isSelected: false,
+      upgradeProgress: 0,
     },
     {
       id: '3',
@@ -84,9 +88,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       type: 'Woodcutter',
       level: 1,
       position: { x: 14, y: 10 },
+      size: { width: 2, height: 2 },
       description: 'Ormandan odun toplar',
       isUpgrading: false,
       isSelected: false,
+      upgradeProgress: 0,
     },
   ],
   
@@ -131,21 +137,42 @@ export const useGameStore = create<GameState>((set, get) => ({
     set((state) => ({
       buildings: state.buildings.map(b => 
         b.id === buildingId 
-          ? { ...b, isUpgrading: true, upgradeTime: 60 } // 60 saniye
+          ? { ...b, isUpgrading: true, upgradeProgress: 0 }
           : b
       )
     }));
 
-    // Yükseltme tamamlandığında
-    setTimeout(() => {
-      set((state) => ({
-        buildings: state.buildings.map(b =>
-          b.id === buildingId
-            ? { ...b, level: b.level + 1, isUpgrading: false }
-            : b
-        )
-      }));
-    }, 60000); // 60 saniye
+    // Progress güncelleme intervali
+    const interval = setInterval(() => {
+      set((state) => {
+        const building = state.buildings.find(b => b.id === buildingId);
+        if (!building || !building.isUpgrading) {
+          clearInterval(interval);
+          return state;
+        }
+
+        const newProgress = building.upgradeProgress + (100 / 60); // 60 saniyede tamamlanacak
+        
+        if (newProgress >= 100) {
+          clearInterval(interval);
+          return {
+            buildings: state.buildings.map(b =>
+              b.id === buildingId
+                ? { ...b, level: b.level + 1, isUpgrading: false, upgradeProgress: 0 }
+                : b
+            )
+          };
+        }
+
+        return {
+          buildings: state.buildings.map(b =>
+            b.id === buildingId
+              ? { ...b, upgradeProgress: newProgress }
+              : b
+          )
+        };
+      });
+    }, 1000);
   },
 
   selectBuilding: (buildingId) => {
