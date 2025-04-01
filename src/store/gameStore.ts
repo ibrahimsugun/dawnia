@@ -1,383 +1,275 @@
 import { create } from 'zustand';
-import { calculateBattleOutcome, calculateResourceProduction, calculateStorageCapacity, calculateUpgradeCost, calculateTrainingTime, calculateUpgradeTime } from '../lib/utils';
-
-interface Army {
-  swordsmen: number;
-  archers: number;
-  cavalry: number;
-}
-
-export interface Resource {
-  name: string;
-  amount: number;
-  production: number;
-  capacity: number;
-}
-
-export interface Building {
-  name: string;
-  level: number;
-  description: string;
-  baseProduction?: number;
-  baseCapacity?: number;
-  upgradeTime: number;
-  isUpgrading: boolean;
-  upgradeCosts: {
-    wood?: number;
-    stone?: number;
-    iron?: number;
-    grain?: number;
-  };
-}
-
-export interface Unit {
-  name: string;
-  attack: number;
-  defense: number;
-  health: number;
-  trainingTime: number;
-  upkeep: number;
-  costs: {
-    wood?: number;
-    stone?: number;
-    iron?: number;
-    grain?: number;
-  };
-}
+import { Building, BuildingType, BuildingCost } from '../models/building';
 
 interface GameState {
+  // Kaynaklar
   resources: {
-    grain: Resource;
-    wood: Resource;
-    stone: Resource;
-    iron: Resource;
+    wood: number;
+    stone: number;
+    iron: number;
+    grain: number;
   };
+  
+  // Binalar
   buildings: Building[];
-  units: Unit[];
-  army: Army;
-  trainingQueue: { unit: Unit; remainingTime: number }[];
-  updateResources: () => void;
-  upgradeBuilding: (buildingName: string) => void;
-  trainUnit: (unitName: string) => void;
-  calculateUpgradeCost: (building: Building) => {
-    wood?: number;
-    stone?: number;
-    iron?: number;
-    grain?: number;
+  selectedBuilding: Building | null;
+  
+  // Ordu
+  army: {
+    swordsmen: number;
+    archers: number;
+    cavalry: number;
   };
-  calculateProductionRate: (building: Building) => number;
-  calculateStorageCapacity: (building: Building) => number;
-  calculateArmyUpkeep: () => number;
-  calculateDefensePower: () => number;
+  
+  // Eğitim kuyruğu
+  trainingQueue: {
+    unit: {
+      name: string;
+      costs: BuildingCost;
+      attack: number;
+      defense: number;
+      health: number;
+      upkeep: number;
+    };
+    remainingTime: number;
+  }[];
+
+  // Aksiyonlar
+  upgradeBuilding: (buildingId: string) => void;
+  selectBuilding: (buildingId: string) => void;
+  closeSelectedBuilding: () => void;
+  trainUnit: (unitType: string) => void;
+  calculateUpgradeCost: (building: Building) => BuildingCost;
   calculateAttackPower: () => number;
+  calculateDefensePower: () => number;
+  calculateArmyUpkeep: () => number;
+
+  // Yeni fonksiyonlar
+  calculateResourceProduction: (resourceType: keyof GameState['resources']) => number;
+  updateResources: () => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
   resources: {
-    grain: { name: 'Grain', amount: 100, production: 10, capacity: 1000 },
-    wood: { name: 'Wood', amount: 150, production: 8, capacity: 1000 },
-    stone: { name: 'Stone', amount: 80, production: 5, capacity: 1000 },
-    iron: { name: 'Iron', amount: 50, production: 3, capacity: 1000 },
+    wood: 1000,
+    stone: 1000,
+    iron: 1000,
+    grain: 1000,
   },
+  
   buildings: [
     {
+      id: '1',
       name: 'Main Building',
+      type: 'Main Building',
       level: 1,
-      description: 'Center of your village. Each level reduces building time by 10%',
-      upgradeTime: 300,
+      position: { x: 12, y: 12 },
+      description: 'Köyünüzün merkezi. Her seviye bina inşaat süresini %10 azaltır.',
       isUpgrading: false,
-      upgradeCosts: { wood: 100, stone: 100 },
+      isSelected: false,
     },
     {
+      id: '2',
       name: 'Farm',
+      type: 'Farm',
       level: 1,
-      description: 'Produces grain for your village',
-      baseProduction: 10,
-      baseCapacity: 1000,
-      upgradeTime: 180,
+      position: { x: 10, y: 10 },
+      description: 'Köyünüz için tahıl üretir',
       isUpgrading: false,
-      upgradeCosts: { wood: 80, stone: 50 },
+      isSelected: false,
     },
     {
+      id: '3',
       name: 'Woodcutter',
+      type: 'Woodcutter',
       level: 1,
-      description: 'Gathers wood from the forest',
-      baseProduction: 8,
-      baseCapacity: 1000,
-      upgradeTime: 180,
+      position: { x: 14, y: 10 },
+      description: 'Ormandan odun toplar',
       isUpgrading: false,
-      upgradeCosts: { wood: 50, stone: 50 },
-    },
-    {
-      name: 'Quarry',
-      level: 1,
-      description: 'Mines stone from the mountains',
-      baseProduction: 5,
-      baseCapacity: 1000,
-      upgradeTime: 240,
-      isUpgrading: false,
-      upgradeCosts: { wood: 100, stone: 30 },
-    },
-    {
-      name: 'Iron Mine',
-      level: 1,
-      description: 'Extracts iron ore',
-      baseProduction: 3,
-      baseCapacity: 1000,
-      upgradeTime: 300,
-      isUpgrading: false,
-      upgradeCosts: { wood: 100, stone: 100 },
-    },
-    {
-      name: 'Barracks',
-      level: 0,
-      description: 'Train military units. Each level reduces training time by 10%',
-      upgradeTime: 360,
-      isUpgrading: false,
-      upgradeCosts: { wood: 200, stone: 150 },
-    },
-    {
-      name: 'Wall',
-      level: 0,
-      description: 'Defends your village. Each level adds 20% to defense',
-      upgradeTime: 420,
-      isUpgrading: false,
-      upgradeCosts: { wood: 100, stone: 300 },
+      isSelected: false,
     },
   ],
-  units: [
-    {
-      name: 'Swordsman',
-      attack: 10,
-      defense: 5,
-      health: 100,
-      trainingTime: 120,
-      upkeep: 1,
-      costs: { wood: 30, iron: 20, grain: 10 },
-    },
-    {
-      name: 'Archer',
-      attack: 12,
-      defense: 3,
-      health: 80,
-      trainingTime: 150,
-      upkeep: 1,
-      costs: { wood: 40, iron: 15, grain: 10 },
-    },
-    {
-      name: 'Cavalry',
-      attack: 20,
-      defense: 15,
-      health: 150,
-      trainingTime: 300,
-      upkeep: 2,
-      costs: { wood: 50, iron: 40, grain: 30 },
-    },
-  ],
+  
+  selectedBuilding: null,
+  
   army: {
     swordsmen: 0,
     archers: 0,
     cavalry: 0,
   },
+  
   trainingQueue: [],
 
-  calculateUpgradeCost: (building: Building) => {
-    const baseCosts = building.upgradeCosts;
-    const level = building.level;
-    return calculateUpgradeCost(baseCosts, level);
-  },
-
-  calculateProductionRate: (building: Building) => {
-    if (!building.baseProduction) return 0;
-    return calculateResourceProduction(building.baseProduction, building.level);
-  },
-
-  calculateStorageCapacity: (building: Building) => {
-    if (!building.baseCapacity) return 0;
-    return calculateStorageCapacity(building.baseCapacity, building.level);
-  },
-
-  calculateArmyUpkeep: () => {
+  upgradeBuilding: (buildingId) => {
     const state = get();
-    return (
-      state.army.swordsmen * state.units[0].upkeep +
-      state.army.archers * state.units[1].upkeep +
-      state.army.cavalry * state.units[2].upkeep
-    );
+    const building = state.buildings.find(b => b.id === buildingId);
+    if (!building) return;
+
+    const cost = state.calculateUpgradeCost(building);
+    
+    // Kaynak kontrolü
+    if (
+      (cost.wood && state.resources.wood < cost.wood) ||
+      (cost.stone && state.resources.stone < cost.stone) ||
+      (cost.iron && state.resources.iron < cost.iron) ||
+      (cost.grain && state.resources.grain < cost.grain)
+    ) {
+      return;
+    }
+
+    // Kaynakları düş
+    set((state) => ({
+      resources: {
+        wood: state.resources.wood - (cost.wood || 0),
+        stone: state.resources.stone - (cost.stone || 0),
+        iron: state.resources.iron - (cost.iron || 0),
+        grain: state.resources.grain - (cost.grain || 0),
+      }
+    }));
+
+    // Binayı yükseltmeye başla
+    set((state) => ({
+      buildings: state.buildings.map(b => 
+        b.id === buildingId 
+          ? { ...b, isUpgrading: true, upgradeTime: 60 } // 60 saniye
+          : b
+      )
+    }));
+
+    // Yükseltme tamamlandığında
+    setTimeout(() => {
+      set((state) => ({
+        buildings: state.buildings.map(b =>
+          b.id === buildingId
+            ? { ...b, level: b.level + 1, isUpgrading: false }
+            : b
+        )
+      }));
+    }, 60000); // 60 saniye
   },
 
-  calculateDefensePower: () => {
-    const state = get();
-    const wall = state.buildings.find(b => b.name === 'Wall');
-    const wallBonus = wall ? 1 + (wall.level * 0.2) : 1;
+  selectBuilding: (buildingId) => {
+    set((state) => ({
+      buildings: state.buildings.map(b => ({
+        ...b,
+        isSelected: b.id === buildingId
+      })),
+      selectedBuilding: state.buildings.find(b => b.id === buildingId) || null
+    }));
+  },
 
-    const baseDefense = 
-      state.army.swordsmen * state.units[0].defense +
-      state.army.archers * state.units[1].defense +
-      state.army.cavalry * state.units[2].defense;
+  closeSelectedBuilding: () => {
+    set((state) => ({
+      buildings: state.buildings.map(b => ({
+        ...b,
+        isSelected: false
+      })),
+      selectedBuilding: null
+    }));
+  },
 
-    return Math.floor(baseDefense * wallBonus);
+  trainUnit: (unitType) => {
+    // Birim eğitimi implementasyonu
+  },
+
+  calculateUpgradeCost: (building) => {
+    const baseCost = {
+      wood: 150,
+      stone: 150,
+    };
+
+    const multiplier = Math.pow(1.5, building.level);
+
+    return {
+      wood: Math.floor(baseCost.wood * multiplier),
+      stone: Math.floor(baseCost.stone * multiplier),
+    };
   },
 
   calculateAttackPower: () => {
     const state = get();
     return (
-      state.army.swordsmen * state.units[0].attack +
-      state.army.archers * state.units[1].attack +
-      state.army.cavalry * state.units[2].attack
+      state.army.swordsmen * 10 +
+      state.army.archers * 8 +
+      state.army.cavalry * 15
     );
+  },
+
+  calculateDefensePower: () => {
+    const state = get();
+    return (
+      state.army.swordsmen * 8 +
+      state.army.archers * 5 +
+      state.army.cavalry * 10
+    );
+  },
+
+  calculateArmyUpkeep: () => {
+    const state = get();
+    return (
+      state.army.swordsmen * 2 +
+      state.army.archers * 2 +
+      state.army.cavalry * 4
+    );
+  },
+
+  calculateResourceProduction: (resourceType) => {
+    const state = get();
+    const baseProduction = {
+      wood: 10,
+      stone: 8,
+      iron: 5,
+      grain: 15
+    };
+
+    // Bina seviyelerine göre üretimi hesapla
+    const buildings = state.buildings;
+    let multiplier = 1;
+
+    buildings.forEach(building => {
+      switch (building.type) {
+        case 'Woodcutter':
+          if (resourceType === 'wood') {
+            multiplier += building.level * 0.2; // Her seviye %20 artış
+          }
+          break;
+        case 'Quarry':
+          if (resourceType === 'stone') {
+            multiplier += building.level * 0.2;
+          }
+          break;
+        case 'Iron Mine':
+          if (resourceType === 'iron') {
+            multiplier += building.level * 0.2;
+          }
+          break;
+        case 'Farm':
+          if (resourceType === 'grain') {
+            multiplier += building.level * 0.2;
+          }
+          break;
+      }
+    });
+
+    // Tahıl üretiminden ordu bakım maliyetini düş
+    if (resourceType === 'grain') {
+      const upkeep = get().calculateArmyUpkeep();
+      return Math.max(0, (baseProduction[resourceType] * multiplier) - upkeep);
+    }
+
+    return baseProduction[resourceType] * multiplier;
   },
 
   updateResources: () => {
     set((state) => {
       const newResources = { ...state.resources };
-      const upkeep = state.calculateArmyUpkeep();
-
-      Object.keys(newResources).forEach((key) => {
-        const resource = newResources[key as keyof typeof newResources];
-        let newAmount = resource.amount;
-
-        if (key === 'grain') {
-          newAmount += (resource.production - upkeep) / 3600;
-        } else {
-          newAmount += resource.production / 3600;
-        }
-
-        resource.amount = Math.max(0, Math.min(newAmount, resource.capacity));
+      
+      (Object.keys(newResources) as Array<keyof typeof newResources>).forEach((resource) => {
+        const production = state.calculateResourceProduction(resource);
+        newResources[resource] = Math.max(0, newResources[resource] + production);
       });
 
       return { resources: newResources };
-    });
-  },
-
-  upgradeBuilding: (buildingName: string) => {
-    const state = get();
-    const buildingIndex = state.buildings.findIndex((b) => b.name === buildingName);
-    if (buildingIndex === -1) return;
-
-    const building = state.buildings[buildingIndex];
-    const costs = state.calculateUpgradeCost(building);
-
-    // Check if we have enough resources
-    if (
-      costs.wood && state.resources.wood.amount < costs.wood ||
-      costs.stone && state.resources.stone.amount < costs.stone ||
-      costs.iron && state.resources.iron.amount < costs.iron ||
-      costs.grain && state.resources.grain.amount < costs.grain
-    ) {
-      return;
-    }
-
-    // Calculate upgrade time with Main Building bonus
-    const mainBuilding = state.buildings.find(b => b.name === 'Main Building');
-    const actualUpgradeTime = calculateUpgradeTime(building.upgradeTime, mainBuilding?.level || 0);
-
-    // Deduct resources
-    set((state) => {
-      const newResources = { ...state.resources };
-      if (costs.wood) newResources.wood.amount -= costs.wood;
-      if (costs.stone) newResources.stone.amount -= costs.stone;
-      if (costs.iron) newResources.iron.amount -= costs.iron;
-      if (costs.grain) newResources.grain.amount -= costs.grain;
-
-      const newBuildings = [...state.buildings];
-      newBuildings[buildingIndex] = {
-        ...building,
-        isUpgrading: true,
-      };
-
-      // Start upgrade timer
-      setTimeout(() => {
-        set((state) => {
-          const buildings = [...state.buildings];
-          buildings[buildingIndex] = {
-            ...buildings[buildingIndex],
-            level: buildings[buildingIndex].level + 1,
-            isUpgrading: false,
-          };
-
-          // Update production and capacity if it's a resource building
-          if (buildings[buildingIndex].baseProduction) {
-            const resourceType = buildings[buildingIndex].name.toLowerCase().includes('farm') ? 'grain'
-              : buildings[buildingIndex].name.toLowerCase().includes('woodcutter') ? 'wood'
-              : buildings[buildingIndex].name.toLowerCase().includes('quarry') ? 'stone'
-              : buildings[buildingIndex].name.toLowerCase().includes('iron') ? 'iron'
-              : null;
-
-            if (resourceType) {
-              const newResources = { ...state.resources };
-              const resource = newResources[resourceType as keyof typeof newResources];
-              resource.production = state.calculateProductionRate(buildings[buildingIndex]);
-              resource.capacity = state.calculateStorageCapacity(buildings[buildingIndex]);
-              return { buildings, resources: newResources };
-            }
-          }
-
-          return { buildings };
-        });
-      }, actualUpgradeTime * 1000);
-
-      return { resources: newResources, buildings: newBuildings };
-    });
-  },
-
-  trainUnit: (unitName: string) => {
-    const state = get();
-    const unit = state.units.find((u) => u.name === unitName);
-    if (!unit) return;
-
-    // Check if barracks exists and is level > 0
-    const barracks = state.buildings.find((b) => b.name === 'Barracks');
-    if (!barracks || barracks.level === 0) return;
-
-    // Calculate training time with Barracks bonus
-    const actualTrainingTime = calculateTrainingTime(unit.trainingTime, barracks.level);
-
-    // Check if we have enough resources
-    const costs = unit.costs;
-    if (
-      costs.wood && state.resources.wood.amount < costs.wood ||
-      costs.stone && state.resources.stone.amount < costs.stone ||
-      costs.iron && state.resources.iron.amount < costs.iron ||
-      costs.grain && state.resources.grain.amount < costs.grain
-    ) {
-      return;
-    }
-
-    // Deduct resources
-    set((state) => {
-      const newResources = { ...state.resources };
-      if (costs.wood) newResources.wood.amount -= costs.wood;
-      if (costs.stone) newResources.stone.amount -= costs.stone;
-      if (costs.iron) newResources.iron.amount -= costs.iron;
-      if (costs.grain) newResources.grain.amount -= costs.grain;
-
-      const newQueue = [...state.trainingQueue, { unit, remainingTime: actualTrainingTime }];
-
-      // Start training timer
-      setTimeout(() => {
-        set((state) => {
-          const newArmy = { ...state.army };
-          switch (unit.name) {
-            case 'Swordsman':
-              newArmy.swordsmen++;
-              break;
-            case 'Archer':
-              newArmy.archers++;
-              break;
-            case 'Cavalry':
-              newArmy.cavalry++;
-              break;
-          }
-
-          return {
-            army: newArmy,
-            trainingQueue: state.trainingQueue.filter((item) => item.unit !== unit),
-          };
-        });
-      }, actualTrainingTime * 1000);
-
-      return { resources: newResources, trainingQueue: newQueue };
     });
   },
 }));

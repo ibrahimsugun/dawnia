@@ -1,44 +1,52 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Wheat, Trees as Tree, Mountain, Cog } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { formatNumber } from '../lib/utils';
 
 export function ResourceBar() {
-  const { resources, updateResources, calculateArmyUpkeep } = useGameStore();
+  const { resources, calculateResourceProduction } = useGameStore();
 
-  useEffect(() => {
-    const interval = setInterval(updateResources, 1000);
-    return () => clearInterval(interval);
-  }, [updateResources]);
+  const resourceIcons = {
+    grain: Wheat,
+    wood: Tree,
+    stone: Mountain,
+    iron: Cog,
+  };
 
-  const resourcesList = [
-    { icon: Wheat, ...resources.grain },
-    { icon: Tree, ...resources.wood },
-    { icon: Mountain, ...resources.stone },
-    { icon: Cog, ...resources.iron },
-  ];
-
-  const upkeep = calculateArmyUpkeep();
+  const resourceNames = {
+    grain: 'Tahıl',
+    wood: 'Odun',
+    stone: 'Taş',
+    iron: 'Demir',
+  };
 
   return (
-    <div className="bg-amber-900/20 rounded-lg p-4 mb-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {resourcesList.map((resource) => (
-          <div key={resource.name} className="flex items-center gap-3 bg-amber-50/10 p-3 rounded-md">
-            <resource.icon className="h-5 w-5 text-amber-200" />
-            <div>
-              <div className="text-amber-100 font-medium">{resource.name}</div>
-              <div className="text-sm text-amber-200/80">
-                {formatNumber(resource.amount)}/{formatNumber(resource.capacity)} 
-                {resource.name === 'Grain' ? (
-                  <span> (+{formatNumber(resource.production - upkeep)}/h)</span>
-                ) : (
-                  <span> (+{formatNumber(resource.production)}/h)</span>
-                )}
+    <div className="bg-[#2A1810]/95 border-b border-amber-900/30 p-4 sticky top-0 z-40 backdrop-blur-sm">
+      <div className="container mx-auto flex justify-center gap-8">
+        {(Object.keys(resources) as Array<keyof typeof resources>).map((resource) => {
+          const Icon = resourceIcons[resource];
+          const production = calculateResourceProduction(resource) || 0;
+          const amount = resources[resource] || 0;
+
+          return (
+            <div key={resource} className="flex items-center gap-3">
+              <Icon className="h-6 w-6 text-amber-500" />
+              <div>
+                <p className="text-amber-400 font-medieval text-sm">
+                  {resourceNames[resource]}
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-300 font-medium">
+                    {formatNumber(amount)}
+                  </span>
+                  <span className="text-amber-400/70 text-sm">
+                    (+{formatNumber(production)}/s)
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
