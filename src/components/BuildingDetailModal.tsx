@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Building, BuildingCost } from '../models/building';
 import { formatNumber } from '../lib/utils';
 import { Wheat, Trees as Tree, Mountain, Cog } from 'lucide-react';
@@ -17,10 +17,25 @@ export function BuildingDetailModal({
   onUpgrade, 
   onClose 
 }: BuildingDetailModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const closeOnClickOutside = (e: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', closeOnClickOutside);
+    return () => document.removeEventListener('mousedown', closeOnClickOutside);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-      <div className="bg-[#2A1810] rounded-lg border-2 border-amber-900/30 shadow-2xl 
-        max-w-2xl w-full mx-4 p-6 space-y-6">
+      <div 
+        ref={modalRef}
+        className="bg-[#2A1810] rounded-lg border-2 border-amber-900/30 shadow-2xl 
+          max-w-2xl w-full mx-4 p-6 space-y-6">
         {/* Başlık */}
         <div className="flex justify-between items-center border-b border-amber-900/30 pb-4">
           <h2 className="text-2xl font-medieval text-amber-500">{building.name}</h2>

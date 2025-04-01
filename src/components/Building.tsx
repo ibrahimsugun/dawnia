@@ -83,10 +83,15 @@ export function Building({
 
           {/* Yükseltme progress barı */}
           {isUpgrading && (
-            <div className="absolute bottom-0 left-0 w-full h-2 bg-amber-900/50">
+            <div className="absolute bottom-0 left-0 w-full h-2 bg-amber-900/50 overflow-hidden">
               <div 
-                className="h-full bg-amber-500 transition-all duration-300"
-                style={{ width: `${upgradeProgress}%` }}
+                className="h-full bg-amber-500 transition-all duration-300 ease-linear"
+                style={{ 
+                  width: `${upgradeProgress}%`,
+                  backgroundImage: 'linear-gradient(45deg, rgba(0,0,0,0.1) 25%, transparent 25%, transparent 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1) 75%, transparent 75%, transparent)',
+                  backgroundSize: '20px 20px',
+                  animation: 'progress-bar-stripes 1s linear infinite'
+                }}
               />
             </div>
           )}
