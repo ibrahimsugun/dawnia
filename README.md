@@ -7,7 +7,7 @@ Dawnia, React ve TypeScript kullanılarak geliştirilmiş, tarayıcı tabanlı b
 - **Kaynak Yönetimi**
   - Odun, Taş, Demir ve Tahıl üretimi
   - Otomatik kaynak toplama sistemi
-  - Gerçek zamanlı üretim göstergeleri
+  - Gerçek zamanlı üretim göstergeleri---
 
 - **Bina Sistemi**
   - Ana Bina, Çiftlik, Oduncu, Taş Ocağı ve daha fazlası
